@@ -1,0 +1,1 @@
+Our Service Level Agreement guarantees: 99.9% network uptime for managed clients, 15-minute response time for critical tickets, 1-hour response for high priority, 4-hour response for medium, and next-business-day for low priority. Monthly SLA compliance reports are provided to all clients.

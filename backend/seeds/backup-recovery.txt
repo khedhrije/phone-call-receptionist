@@ -1,0 +1,1 @@
+Our backup solution includes automated daily backups with 30-day retention, off-site replication, quarterly disaster recovery testing, and guaranteed recovery time objectives (RTO) of 4 hours for critical systems. We support both on-premises and cloud-based backup targets.

@@ -1,0 +1,1278 @@
+basePath: /api
+definitions:
+  phone-call-receptionist_backend_pkg_dtos_requests.ChangePasswordRequest:
+    properties:
+      currentPassword:
+        description: CurrentPassword is the user's current password.
+        type: string
+      newPassword:
+        description: NewPassword is the user's desired new password.
+        minLength: 8
+        type: string
+    required:
+    - currentPassword
+    - newPassword
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_requests.CreateAppointmentRequest:
+    properties:
+      callerEmail:
+        description: CallerEmail is the email address of the person booking.
+        type: string
+      callerName:
+        description: CallerName is the full name of the person booking.
+        type: string
+      callerPhone:
+        description: CallerPhone is the phone number of the person booking.
+        type: string
+      durationMins:
+        description: DurationMins is the appointment duration in minutes.
+        maximum: 480
+        minimum: 15
+        type: integer
+      notes:
+        description: Notes contains additional appointment notes.
+        type: string
+      scheduledAt:
+        description: ScheduledAt is the requested appointment time in RFC3339 format.
+        type: string
+      serviceType:
+        description: ServiceType is the type of IT service requested.
+        type: string
+    required:
+    - callerEmail
+    - callerName
+    - callerPhone
+    - durationMins
+    - scheduledAt
+    - serviceType
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_requests.RescheduleAppointmentRequest:
+    properties:
+      scheduledAt:
+        description: ScheduledAt is the new appointment time in RFC3339 format.
+        type: string
+    required:
+    - scheduledAt
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_requests.SearchKnowledgeRequest:
+    properties:
+      query:
+        description: Query is the natural language search query.
+        type: string
+      topK:
+        description: TopK is the number of results to return.
+        maximum: 20
+        minimum: 1
+        type: integer
+    required:
+    - query
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_requests.SignInRequest:
+    properties:
+      email:
+        description: Email is the user's email address.
+        type: string
+      password:
+        description: Password is the user's password.
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_requests.SignUpRequest:
+    properties:
+      email:
+        description: Email is the user's email address.
+        type: string
+      password:
+        description: Password is the user's chosen password.
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_requests.UpdateLeadRequest:
+    properties:
+      notes:
+        description: Notes contains additional notes about the lead.
+        type: string
+      status:
+        description: Status is the new lead status (new, contacted, qualified, converted,
+          lost).
+        enum:
+        - new
+        - contacted
+        - qualified
+        - converted
+        - lost
+        type: string
+    required:
+    - status
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_requests.UpdateProfileRequest:
+    properties:
+      email:
+        description: Email is the user's new email address.
+        type: string
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_requests.UpdateSettingsRequest:
+    properties:
+      defaultLlmProvider:
+        description: DefaultLLMProvider is the name of the default LLM provider.
+        type: string
+      defaultVoiceId:
+        description: DefaultVoiceID is the default ElevenLabs voice identifier.
+        type: string
+      maxCallDurationSecs:
+        description: MaxCallDurationSecs is the maximum call duration in seconds.
+        maximum: 1800
+        minimum: 60
+        type: integer
+      topK:
+        description: TopK is the number of top results in vector search.
+        maximum: 20
+        minimum: 1
+        type: integer
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.AppointmentResponse:
+    properties:
+      callId:
+        description: CallID is the related call identifier.
+        type: string
+      callerEmail:
+        description: CallerEmail is the email address of the person who booked.
+        type: string
+      callerName:
+        description: CallerName is the full name of the person who booked.
+        type: string
+      callerPhone:
+        description: CallerPhone is the phone number of the person who booked.
+        type: string
+      createdAt:
+        description: CreatedAt is the creation timestamp in RFC3339 format.
+        type: string
+      durationMins:
+        description: DurationMins is the appointment duration in minutes.
+        type: integer
+      googleEventId:
+        description: GoogleEventID is the Google Calendar event identifier.
+        type: string
+      id:
+        description: ID is the appointment's unique identifier.
+        type: string
+      notes:
+        description: Notes contains additional appointment notes.
+        type: string
+      scheduledAt:
+        description: ScheduledAt is the appointment date and time in RFC3339 format.
+        type: string
+      serviceType:
+        description: ServiceType is the type of IT service requested.
+        type: string
+      smsSentAt:
+        description: SMSSentAt is the SMS confirmation timestamp in RFC3339 format.
+        type: string
+      status:
+        description: Status is the current appointment status.
+        type: string
+      updatedAt:
+        description: UpdatedAt is the last modification timestamp in RFC3339 format.
+        type: string
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.AuthResponse:
+    properties:
+      token:
+        description: Token is the JWT authentication token.
+        type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.UserResponse'
+        description: User is the authenticated user's profile.
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.CallResponse:
+    properties:
+      callerPhone:
+        description: CallerPhone is the caller's phone number.
+        type: string
+      createdAt:
+        description: CreatedAt is the call start timestamp in RFC3339 format.
+        type: string
+      durationSeconds:
+        description: DurationSeconds is the call duration in seconds.
+        type: integer
+      endedAt:
+        description: EndedAt is the call end timestamp in RFC3339 format.
+        type: string
+      id:
+        description: ID is the call's unique identifier.
+        type: string
+      llmCostUsd:
+        description: LLMCostUSD is the LLM cost in US dollars.
+        type: number
+      ragQueries:
+        description: RAGQueries is the RAG queries executed during the call.
+        items:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.RAGQueryResponse'
+        type: array
+      status:
+        description: Status is the current call status.
+        type: string
+      totalCostUsd:
+        description: TotalCostUSD is the total cost in US dollars.
+        type: number
+      transcript:
+        description: Transcript is the call transcript entries.
+        items:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.TranscriptEntryResponse'
+        type: array
+      twilioCallSid:
+        description: TwilioCallSID is the Twilio-assigned call session identifier.
+        type: string
+      twilioCostUsd:
+        description: TwilioCostUSD is the Twilio cost in US dollars.
+        type: number
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.CallVolumeResponse:
+    properties:
+      days:
+        description: Days is the daily call volume.
+        items:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.DayVolumeResponse'
+        type: array
+      totalCalls:
+        description: TotalCalls is the total number of calls in the period.
+        type: integer
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.CostAnalyticsResponse:
+    properties:
+      days:
+        description: Days is the daily cost breakdown.
+        items:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.DayCostResponse'
+        type: array
+      totalCost:
+        description: TotalCost is the combined total cost in the period.
+        type: number
+      totalLlmCost:
+        description: TotalLLMCost is the total LLM cost in the period.
+        type: number
+      totalTwilioCost:
+        description: TotalTwilioCost is the total Twilio cost in the period.
+        type: number
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.DashboardStatsResponse:
+    properties:
+      avgCostPerCall:
+        description: AvgCostPerCall is the average total cost per call in US dollars.
+        type: number
+      callsToday:
+        description: CallsToday is the number of calls received today.
+        type: integer
+      totalAppointments:
+        description: TotalAppointments is the total number of appointments booked.
+        type: integer
+      totalCalls:
+        description: TotalCalls is the total number of inbound calls.
+        type: integer
+      totalCostUsd:
+        description: TotalCostUSD is the total cost across all calls in US dollars.
+        type: number
+      totalLeads:
+        description: TotalLeads is the total number of leads captured.
+        type: integer
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.DayCostResponse:
+    properties:
+      callCount:
+        description: CallCount is the number of calls on this day.
+        type: integer
+      date:
+        description: Date is the day in YYYY-MM-DD format.
+        type: string
+      llmCost:
+        description: LLMCost is the LLM cost for this day.
+        type: number
+      totalCost:
+        description: TotalCost is the total cost for this day.
+        type: number
+      twilioCost:
+        description: TwilioCost is the Twilio cost for this day.
+        type: number
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.DayVolumeResponse:
+    properties:
+      avgDuration:
+        description: AvgDuration is the average call duration in seconds.
+        type: integer
+      callCount:
+        description: CallCount is the number of calls on this day.
+        type: integer
+      date:
+        description: Date is the day in YYYY-MM-DD format.
+        type: string
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.ErrorResponse:
+    properties:
+      error:
+        description: Error is the error message.
+        type: string
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.KnowledgeDocumentResponse:
+    properties:
+      chunkCount:
+        description: ChunkCount is the number of chunks the document was split into.
+        type: integer
+      createdAt:
+        description: CreatedAt is the creation timestamp in RFC3339 format.
+        type: string
+      filename:
+        description: Filename is the original file name.
+        type: string
+      id:
+        description: ID is the document's unique identifier.
+        type: string
+      indexedAt:
+        description: IndexedAt is the indexing completion timestamp in RFC3339 format.
+        type: string
+      mimeType:
+        description: MimeType is the file MIME type.
+        type: string
+      status:
+        description: Status is the current indexing status.
+        type: string
+      updatedAt:
+        description: UpdatedAt is the last modification timestamp in RFC3339 format.
+        type: string
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.KnowledgeSearchResponse:
+    properties:
+      answer:
+        description: Answer is the LLM-generated answer from the retrieved context.
+        type: string
+      provider:
+        description: Provider is the LLM provider that generated the answer.
+        type: string
+      sources:
+        description: Sources is the list of source chunks used to generate the answer.
+        items:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.SearchResultResponse'
+        type: array
+      tokens:
+        description: Tokens is the number of tokens consumed.
+        type: integer
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.LeadResponse:
+    properties:
+      callId:
+        description: CallID is the related call identifier.
+        type: string
+      createdAt:
+        description: CreatedAt is the creation timestamp in RFC3339 format.
+        type: string
+      email:
+        description: Email is the lead's email address.
+        type: string
+      id:
+        description: ID is the lead's unique identifier.
+        type: string
+      name:
+        description: Name is the lead's full name.
+        type: string
+      notes:
+        description: Notes contains additional notes about the lead.
+        type: string
+      phone:
+        description: Phone is the lead's phone number.
+        type: string
+      status:
+        description: Status is the current lead status.
+        type: string
+      updatedAt:
+        description: UpdatedAt is the last modification timestamp in RFC3339 format.
+        type: string
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.PaginatedResponse:
+    properties:
+      items:
+        description: Items contains the page of results.
+      page:
+        description: Page is the current page number (1-based).
+        type: integer
+      pageSize:
+        description: PageSize is the number of items per page.
+        type: integer
+      total:
+        description: Total is the total number of matching items across all pages.
+        type: integer
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.RAGQueryResponse:
+    properties:
+      at:
+        description: At is the query timestamp in RFC3339 format.
+        type: string
+      chunks:
+        description: Chunks is the list of retrieved chunk IDs.
+        items:
+          type: string
+        type: array
+      provider:
+        description: Provider is the LLM provider used.
+        type: string
+      query:
+        description: Query is the user's question.
+        type: string
+      response:
+        description: Response is the generated answer.
+        type: string
+      tokens:
+        description: Tokens is the number of tokens consumed.
+        type: integer
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.SearchResultResponse:
+    properties:
+      chunkId:
+        description: ChunkID is the matched chunk's identifier.
+        type: string
+      content:
+        description: Content is the matched text content.
+        type: string
+      documentId:
+        description: DocumentID is the source document's identifier.
+        type: string
+      pageNumber:
+        description: PageNumber is the source page number.
+        type: integer
+      score:
+        description: Score is the similarity score.
+        type: number
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.SystemSettingsResponse:
+    properties:
+      defaultLlmProvider:
+        description: DefaultLLMProvider is the name of the default LLM provider.
+        type: string
+      defaultVoiceId:
+        description: DefaultVoiceID is the default ElevenLabs voice identifier.
+        type: string
+      maxCallDurationSecs:
+        description: MaxCallDurationSecs is the maximum call duration in seconds.
+        type: integer
+      topK:
+        description: TopK is the number of top results in vector search.
+        type: integer
+      updatedAt:
+        description: UpdatedAt is the last modification timestamp in RFC3339 format.
+        type: string
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.TimeSlotResponse:
+    properties:
+      end:
+        description: End is the end of the time slot in RFC3339 format.
+        type: string
+      start:
+        description: Start is the beginning of the time slot in RFC3339 format.
+        type: string
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.TranscriptEntryResponse:
+    properties:
+      at:
+        description: At is the speech timestamp in RFC3339 format.
+        type: string
+      speaker:
+        description: Speaker identifies who spoke (caller or assistant).
+        type: string
+      text:
+        description: Text is the spoken text.
+        type: string
+    type: object
+  phone-call-receptionist_backend_pkg_dtos_responses.UserResponse:
+    properties:
+      createdAt:
+        description: CreatedAt is the account creation timestamp in RFC3339 format.
+        type: string
+      email:
+        description: Email is the user's email address.
+        type: string
+      id:
+        description: ID is the user's unique identifier.
+        type: string
+      isBlocked:
+        description: IsBlocked indicates whether the user account is blocked.
+        type: boolean
+      role:
+        description: Role is the user's permission role.
+        type: string
+      updatedAt:
+        description: UpdatedAt is the last modification timestamp in RFC3339 format.
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Voice AI Receptionist for IT services firm
+  title: Phone Call Receptionist API
+  version: "1.0"
+paths:
+  /appointments:
+    get:
+      description: Returns paginated list of appointments
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.PaginatedResponse'
+      security:
+      - BearerAuth: []
+      summary: List appointments
+      tags:
+      - Appointments
+    post:
+      consumes:
+      - application/json
+      description: Create a new appointment
+      parameters:
+      - description: Appointment data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_requests.CreateAppointmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.AppointmentResponse'
+      security:
+      - BearerAuth: []
+      summary: Book an appointment
+      tags:
+      - Appointments
+  /appointments/{id}:
+    delete:
+      description: Cancel an appointment
+      parameters:
+      - description: Appointment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Cancel appointment
+      tags:
+      - Appointments
+    get:
+      description: Returns appointment by ID
+      parameters:
+      - description: Appointment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.AppointmentResponse'
+      security:
+      - BearerAuth: []
+      summary: Get appointment detail
+      tags:
+      - Appointments
+    put:
+      consumes:
+      - application/json
+      description: Change appointment time
+      parameters:
+      - description: Appointment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New time
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_requests.RescheduleAppointmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.AppointmentResponse'
+      security:
+      - BearerAuth: []
+      summary: Reschedule appointment
+      tags:
+      - Appointments
+  /appointments/availability:
+    get:
+      description: Returns available time slots
+      parameters:
+      - description: From date (RFC3339)
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: To date (RFC3339)
+        in: query
+        name: to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.TimeSlotResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Check availability
+      tags:
+      - Appointments
+  /auth/signin:
+    post:
+      consumes:
+      - application/json
+      description: Sign in with email and password
+      parameters:
+      - description: Sign in data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_requests.SignInRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.ErrorResponse'
+      summary: Authenticate user
+      tags:
+      - Auth
+  /auth/signup:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with email and password
+      parameters:
+      - description: Sign up data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_requests.SignUpRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.ErrorResponse'
+      summary: Create a new user account
+      tags:
+      - Auth
+  /calls:
+    get:
+      description: Returns paginated list of inbound calls
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: From date (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: To date (RFC3339)
+        in: query
+        name: to
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.PaginatedResponse'
+      security:
+      - BearerAuth: []
+      summary: List inbound calls
+      tags:
+      - Calls
+  /calls/{id}:
+    get:
+      description: Returns full call detail with transcript
+      parameters:
+      - description: Call ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.CallResponse'
+      security:
+      - BearerAuth: []
+      summary: Get call detail
+      tags:
+      - Calls
+  /calls/{id}/rag-queries:
+    get:
+      description: Returns RAG queries executed during a call
+      parameters:
+      - description: Call ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.RAGQueryResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get RAG queries for a call
+      tags:
+      - Calls
+  /calls/stats:
+    get:
+      description: Returns call cost and volume stats
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.DashboardStatsResponse'
+      security:
+      - BearerAuth: []
+      summary: Get call statistics
+      tags:
+      - Calls
+  /dashboard/costs:
+    get:
+      description: Returns cost breakdown for a time range
+      parameters:
+      - description: From date (RFC3339)
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: To date (RFC3339)
+        in: query
+        name: to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.CostAnalyticsResponse'
+      security:
+      - BearerAuth: []
+      summary: Get cost analytics
+      tags:
+      - Dashboard
+  /dashboard/stats:
+    get:
+      description: Returns overview statistics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.DashboardStatsResponse'
+      security:
+      - BearerAuth: []
+      summary: Get dashboard statistics
+      tags:
+      - Dashboard
+  /dashboard/volume:
+    get:
+      description: Returns call volume for a time range
+      parameters:
+      - description: From date (RFC3339)
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: To date (RFC3339)
+        in: query
+        name: to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.CallVolumeResponse'
+      security:
+      - BearerAuth: []
+      summary: Get call volume
+      tags:
+      - Dashboard
+  /health:
+    get:
+      description: Check if the service is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - Health
+  /knowledge/documents:
+    get:
+      description: Returns all knowledge base documents
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.KnowledgeDocumentResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List documents
+      tags:
+      - Knowledge
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a file to the knowledge base for indexing
+      parameters:
+      - description: Document file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.KnowledgeDocumentResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload a document
+      tags:
+      - Knowledge
+  /knowledge/documents/{id}:
+    delete:
+      description: Delete a knowledge document and its chunks
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete document
+      tags:
+      - Knowledge
+    get:
+      description: Returns a knowledge document by ID
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.KnowledgeDocumentResponse'
+      security:
+      - BearerAuth: []
+      summary: Get document detail
+      tags:
+      - Knowledge
+  /knowledge/documents/{id}/reindex:
+    post:
+      description: Re-process document through the RAG pipeline
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Reindex document
+      tags:
+      - Knowledge
+  /knowledge/search:
+    post:
+      consumes:
+      - application/json
+      description: Semantic search across the knowledge base
+      parameters:
+      - description: Search query
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_requests.SearchKnowledgeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.KnowledgeSearchResponse'
+      security:
+      - BearerAuth: []
+      summary: Search knowledge base
+      tags:
+      - Knowledge
+  /leads:
+    get:
+      description: Returns paginated list of leads
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.PaginatedResponse'
+      security:
+      - BearerAuth: []
+      summary: List leads
+      tags:
+      - Leads
+  /leads/{id}:
+    get:
+      description: Returns lead by ID
+      parameters:
+      - description: Lead ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.LeadResponse'
+      security:
+      - BearerAuth: []
+      summary: Get lead detail
+      tags:
+      - Leads
+    put:
+      consumes:
+      - application/json
+      description: Update lead status and notes
+      parameters:
+      - description: Lead ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Lead data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_requests.UpdateLeadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.LeadResponse'
+      security:
+      - BearerAuth: []
+      summary: Update lead
+      tags:
+      - Leads
+  /settings:
+    get:
+      description: Returns the current system settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.SystemSettingsResponse'
+      security:
+      - BearerAuth: []
+      summary: Get system settings
+      tags:
+      - Settings
+    put:
+      consumes:
+      - application/json
+      description: Update the system settings
+      parameters:
+      - description: Settings data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_requests.UpdateSettingsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.SystemSettingsResponse'
+      security:
+      - BearerAuth: []
+      summary: Update system settings
+      tags:
+      - Settings
+  /users/me:
+    get:
+      description: Returns the authenticated user's profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - Auth
+    put:
+      consumes:
+      - application/json
+      description: Update the authenticated user's profile
+      parameters:
+      - description: Profile data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_requests.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_responses.UserResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - Auth
+  /users/me/password:
+    post:
+      consumes:
+      - application/json
+      description: Change the authenticated user's password
+      parameters:
+      - description: Password data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phone-call-receptionist_backend_pkg_dtos_requests.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - Auth
+  /webhooks/twilio/gather:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Handles speech input from caller
+      produces:
+      - text/xml
+      responses:
+        "200":
+          description: TwiML XML response
+          schema:
+            type: string
+      summary: Twilio gather webhook
+      tags:
+      - Webhooks
+  /webhooks/twilio/recording:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Handles recording callbacks from Twilio
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Twilio recording webhook
+      tags:
+      - Webhooks
+  /webhooks/twilio/status:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Handles call status updates from Twilio
+      produces:
+      - text/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Twilio status webhook
+      tags:
+      - Webhooks
+  /webhooks/twilio/voice:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Handles inbound call from Twilio
+      produces:
+      - text/xml
+      responses:
+        "200":
+          description: TwiML XML response
+          schema:
+            type: string
+      summary: Twilio voice webhook
+      tags:
+      - Webhooks
+  /ws:
+    get:
+      description: Upgrade to WebSocket for real-time events
+      responses:
+        "101":
+          description: Switching Protocols
+      summary: WebSocket connection
+      tags:
+      - WebSocket
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

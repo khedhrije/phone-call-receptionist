@@ -1,0 +1,46 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+tmp/
+
+# Go
+vendor/
+*.test
+*.out
+coverage.txt
+
+# Environment
+.env
+*.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated
+docs/swagger.*
+docs/docs.go
+
+# Uploads & cache
+uploads/
+audio_cache/
+
+# Node
+node_modules/
+.nuxt/
+.output/
+dist/
+
+# Docker
+docker-compose.override.yml
