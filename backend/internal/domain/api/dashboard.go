@@ -35,20 +35,28 @@ func NewDashboardApi(
 
 // Stats retrieves the dashboard overview statistics.
 func (d *DashboardApi) Stats(ctx context.Context) (responses.DashboardStatsResponse, error) {
+	d.logger.Info().Msg("[DashboardApi] Stats started")
+
 	calls, totalCalls, err := d.callPort.List(ctx, port.CallFilters{Limit: 1})
 	if err != nil {
+		d.logger.Error().Err(err).Msg("[DashboardApi] Failed to count calls")
 		return responses.DashboardStatsResponse{}, fmt.Errorf("failed to count calls: %w", err)
 	}
+	d.logger.Debug().Int("totalCalls", totalCalls).Msg("[DashboardApi] Calls counted")
 
 	_, totalAppts, err := d.apptPort.List(ctx, port.AppointmentFilters{Limit: 1})
 	if err != nil {
+		d.logger.Error().Err(err).Msg("[DashboardApi] Failed to count appointments")
 		return responses.DashboardStatsResponse{}, fmt.Errorf("failed to count appointments: %w", err)
 	}
+	d.logger.Debug().Int("totalAppts", totalAppts).Msg("[DashboardApi] Appointments counted")
 
 	_, totalLeads, err := d.leadPort.List(ctx, port.LeadFilters{Limit: 1})
 	if err != nil {
+		d.logger.Error().Err(err).Msg("[DashboardApi] Failed to count leads")
 		return responses.DashboardStatsResponse{}, fmt.Errorf("failed to count leads: %w", err)
 	}
+	d.logger.Debug().Int("totalLeads", totalLeads).Msg("[DashboardApi] Leads counted")
 
 	var totalCost float64
 	allCalls, _, _ := d.callPort.List(ctx, port.CallFilters{Limit: 10000})
@@ -63,6 +71,7 @@ func (d *DashboardApi) Stats(ctx context.Context) (responses.DashboardStatsRespo
 
 	_ = calls
 
+	d.logger.Info().Int("totalCalls", totalCalls).Int("totalAppts", totalAppts).Int("totalLeads", totalLeads).Float64("totalCost", totalCost).Msg("[DashboardApi] Stats completed")
 	return responses.DashboardStatsResponse{
 		TotalCalls:        totalCalls,
 		TotalAppointments: totalAppts,
@@ -74,8 +83,11 @@ func (d *DashboardApi) Stats(ctx context.Context) (responses.DashboardStatsRespo
 
 // CostAnalytics retrieves cost breakdown data for the given time range.
 func (d *DashboardApi) CostAnalytics(ctx context.Context, from string, to string) (responses.CostAnalyticsResponse, error) {
+	d.logger.Info().Str("from", from).Str("to", to).Msg("[DashboardApi] CostAnalytics started")
+
 	calls, _, err := d.callPort.List(ctx, port.CallFilters{From: from, To: to, Limit: 10000})
 	if err != nil {
+		d.logger.Error().Err(err).Msg("[DashboardApi] Failed to list calls for cost analytics")
 		return responses.CostAnalyticsResponse{}, fmt.Errorf("failed to list calls: %w", err)
 	}
 
@@ -102,6 +114,7 @@ func (d *DashboardApi) CostAnalytics(ctx context.Context, from string, to string
 		days = append(days, *day)
 	}
 
+	d.logger.Info().Int("days", len(days)).Float64("totalCost", totalTwilio+totalLLM).Msg("[DashboardApi] CostAnalytics completed")
 	return responses.CostAnalyticsResponse{
 		Days:            days,
 		TotalTwilioCost: totalTwilio,
@@ -112,8 +125,11 @@ func (d *DashboardApi) CostAnalytics(ctx context.Context, from string, to string
 
 // CallVolume retrieves call volume data for the given time range.
 func (d *DashboardApi) CallVolume(ctx context.Context, from string, to string) (responses.CallVolumeResponse, error) {
+	d.logger.Info().Str("from", from).Str("to", to).Msg("[DashboardApi] CallVolume started")
+
 	calls, _, err := d.callPort.List(ctx, port.CallFilters{From: from, To: to, Limit: 10000})
 	if err != nil {
+		d.logger.Error().Err(err).Msg("[DashboardApi] Failed to list calls for call volume")
 		return responses.CallVolumeResponse{}, fmt.Errorf("failed to list calls: %w", err)
 	}
 
@@ -140,6 +156,7 @@ func (d *DashboardApi) CallVolume(ctx context.Context, from string, to string) (
 		days = append(days, *day)
 	}
 
+	d.logger.Info().Int("days", len(days)).Int("totalCalls", totalCalls).Msg("[DashboardApi] CallVolume completed")
 	return responses.CallVolumeResponse{
 		Days:       days,
 		TotalCalls: totalCalls,

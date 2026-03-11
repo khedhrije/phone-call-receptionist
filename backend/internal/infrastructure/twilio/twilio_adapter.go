@@ -51,6 +51,8 @@ type smsResponse struct {
 // SendSMS sends an SMS message to the given phone number using Twilio.
 // Returns the Twilio message SID and any error.
 func (a *Adapter) SendSMS(ctx context.Context, to string, message string) (string, error) {
+	a.logger.Debug().Str("to", to).Int("messageLen", len(message)).Msg("[TwilioAdapter] sending SMS")
+
 	endpoint := fmt.Sprintf(messagesEndpoint, a.accountSID)
 
 	data := url.Values{}
@@ -60,6 +62,7 @@ func (a *Adapter) SendSMS(ctx context.Context, to string, message string) (strin
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(data.Encode()))
 	if err != nil {
+		a.logger.Error().Err(err).Str("to", to).Msg("[TwilioAdapter] failed to create request")
 		return "", fmt.Errorf("failed to create twilio request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -67,32 +70,37 @@ func (a *Adapter) SendSMS(ctx context.Context, to string, message string) (strin
 
 	resp, err := a.client.Do(req)
 	if err != nil {
+		a.logger.Error().Err(err).Str("to", to).Msg("[TwilioAdapter] failed to call API")
 		return "", fmt.Errorf("failed to call twilio: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		a.logger.Error().Err(err).Str("to", to).Msg("[TwilioAdapter] failed to read response body")
 		return "", fmt.Errorf("failed to read twilio response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusCreated {
+		a.logger.Error().Int("statusCode", resp.StatusCode).Str("to", to).Msg("[TwilioAdapter] API returned non-created status")
 		return "", fmt.Errorf("failed to send sms via twilio: status %d, body: %s", resp.StatusCode, string(respBody))
 	}
 
 	var smsResp smsResponse
 	if err := json.Unmarshal(respBody, &smsResp); err != nil {
+		a.logger.Error().Err(err).Str("to", to).Msg("[TwilioAdapter] failed to unmarshal response")
 		return "", fmt.Errorf("failed to unmarshal twilio response: %w", err)
 	}
 
 	if smsResp.ErrorCode != nil {
+		a.logger.Error().Int("errorCode", *smsResp.ErrorCode).Str("errorMessage", smsResp.ErrorMessage).Str("to", to).Msg("[TwilioAdapter] API returned error")
 		return "", fmt.Errorf("failed to send sms via twilio: error %d: %s", *smsResp.ErrorCode, smsResp.ErrorMessage)
 	}
 
 	a.logger.Info().
 		Str("sid", smsResp.SID).
 		Str("to", to).
-		Msg("SMS sent via Twilio")
+		Msg("[TwilioAdapter] SMS sent")
 
 	return smsResp.SID, nil
 }
@@ -100,6 +108,7 @@ func (a *Adapter) SendSMS(ctx context.Context, to string, message string) (strin
 // ValidateSignature verifies that a webhook request came from Twilio by
 // validating the X-Twilio-Signature using HMAC-SHA1.
 func (a *Adapter) ValidateSignature(requestURL string, params map[string]string, signature string) bool {
+	a.logger.Debug().Str("url", requestURL).Int("params", len(params)).Msg("[TwilioAdapter] validating signature")
 	// Sort parameter keys
 	keys := make([]string, 0, len(params))
 	for k := range params {
@@ -120,5 +129,11 @@ func (a *Adapter) ValidateSignature(requestURL string, params map[string]string,
 	mac.Write([]byte(builder.String()))
 	expected := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 
-	return hmac.Equal([]byte(expected), []byte(signature))
+	valid := hmac.Equal([]byte(expected), []byte(signature))
+	if !valid {
+		a.logger.Warn().Str("url", requestURL).Msg("[TwilioAdapter] signature validation failed")
+	} else {
+		a.logger.Debug().Str("url", requestURL).Msg("[TwilioAdapter] signature validated")
+	}
+	return valid
 }

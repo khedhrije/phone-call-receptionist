@@ -26,5 +26,7 @@ func NewWSHandler(hub *ws.Hub, logger *zerolog.Logger) *WSHandler {
 //	@Success		101
 //	@Router			/ws [get]
 func (h *WSHandler) HandleWebSocket(c *gin.Context) {
+	h.logger.Info().Str("remoteAddr", c.Request.RemoteAddr).Msg("[WSHandler] HandleWebSocket connection upgrade requested")
 	h.hub.HandleWebSocket(c.Writer, c.Request)
+	h.logger.Info().Str("remoteAddr", c.Request.RemoteAddr).Msg("[WSHandler] HandleWebSocket connection established")
 }

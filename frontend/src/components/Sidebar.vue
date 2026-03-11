@@ -3,6 +3,7 @@ const route = useRoute()
 
 const links = [
   { path: '/dashboard', label: 'Dashboard', icon: 'D' },
+  { path: '/live', label: 'Live Monitor', icon: 'P' },
   { path: '/calls', label: 'Calls', icon: 'C' },
   { path: '/appointments', label: 'Appointments', icon: 'A' },
   { path: '/leads', label: 'Leads', icon: 'L' },

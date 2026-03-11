@@ -2,6 +2,7 @@
 package ws
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"sync"
@@ -70,7 +71,7 @@ func (h *Hub) run() {
 			h.mu.Lock()
 			h.clients[client] = true
 			h.mu.Unlock()
-			h.logger.Debug().Int("clients", len(h.clients)).Msg("WebSocket client connected")
+			h.logger.Debug().Int("clients", len(h.clients)).Msg("[WSHub] client connected")
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -79,7 +80,7 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 			h.mu.Unlock()
-			h.logger.Debug().Int("clients", len(h.clients)).Msg("WebSocket client disconnected")
+			h.logger.Debug().Int("clients", len(h.clients)).Msg("[WSHub] client disconnected")
 
 		case message := <-h.broadcast:
 			h.mu.RLock()
@@ -98,13 +99,14 @@ func (h *Hub) run() {
 
 // Broadcast sends an event to all connected WebSocket clients.
 // The event is JSON-encoded before broadcasting.
-func (h *Hub) Broadcast(event interface{}) {
+func (h *Hub) Broadcast(_ context.Context, event interface{}) {
 	data, err := json.Marshal(event)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("Failed to marshal broadcast event")
+		h.logger.Error().Err(err).Msg("[WSHub] failed to marshal broadcast event")
 		return
 	}
 
+	h.logger.Debug().Int("bytes", len(data)).Msg("[WSHub] broadcasting event")
 	h.broadcast <- data
 }
 
@@ -113,9 +115,11 @@ func (h *Hub) Broadcast(event interface{}) {
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("Failed to upgrade websocket connection")
+		h.logger.Error().Err(err).Msg("[WSHub] failed to upgrade websocket connection")
 		return
 	}
+
+	h.logger.Debug().Str("remoteAddr", r.RemoteAddr).Msg("[WSHub] websocket connection upgraded")
 
 	client := &Client{
 		hub:  h,
@@ -148,7 +152,7 @@ func (c *Client) readPump() {
 		_, _, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				c.hub.logger.Warn().Err(err).Msg("WebSocket unexpected close")
+				c.hub.logger.Warn().Err(err).Msg("[WSHub] unexpected close")
 			}
 			break
 		}

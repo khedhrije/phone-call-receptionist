@@ -37,6 +37,8 @@ func NewLeadHandler(leadApi *api.LeadApi, logger *zerolog.Logger) *LeadHandler {
 //	@Security		BearerAuth
 //	@Router			/leads [get]
 func (h *LeadHandler) List(c *gin.Context) {
+	h.logger.Info().Msg("[LeadHandler] List request received")
+
 	var pagination requests.PaginationRequest
 	c.ShouldBindQuery(&pagination)
 
@@ -46,8 +48,15 @@ func (h *LeadHandler) List(c *gin.Context) {
 		Offset: pagination.Offset(),
 	}
 
+	h.logger.Info().
+		Str("status", filters.Status).
+		Int("limit", filters.Limit).
+		Int("offset", filters.Offset).
+		Msg("[LeadHandler] List fetching leads with filters")
+
 	leads, total, err := h.leadApi.List(c.Request.Context(), filters)
 	if err != nil {
+		h.logger.Error().Err(err).Msg("[LeadHandler] List failed")
 		HandleError(c, err)
 		return
 	}
@@ -56,6 +65,8 @@ func (h *LeadHandler) List(c *gin.Context) {
 	for _, l := range leads {
 		items = append(items, toLeadResponse(l))
 	}
+
+	h.logger.Info().Int("total", total).Int("count", len(items)).Msg("[LeadHandler] List succeeded")
 
 	c.JSON(http.StatusOK, responses.PaginatedResponse{
 		Items: items, Total: total,
@@ -74,11 +85,18 @@ func (h *LeadHandler) List(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Router			/leads/{id} [get]
 func (h *LeadHandler) FindByID(c *gin.Context) {
-	lead, err := h.leadApi.FindByID(c.Request.Context(), c.Param("id"))
+	leadID := c.Param("id")
+	h.logger.Info().Str("leadID", leadID).Msg("[LeadHandler] FindByID request received")
+
+	lead, err := h.leadApi.FindByID(c.Request.Context(), leadID)
 	if err != nil {
+		h.logger.Error().Err(err).Str("leadID", leadID).Msg("[LeadHandler] FindByID failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Str("leadID", leadID).Msg("[LeadHandler] FindByID succeeded")
+
 	c.JSON(http.StatusOK, toLeadResponse(lead))
 }
 
@@ -95,17 +113,27 @@ func (h *LeadHandler) FindByID(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Router			/leads/{id} [put]
 func (h *LeadHandler) Update(c *gin.Context) {
+	leadID := c.Param("id")
+	h.logger.Info().Str("leadID", leadID).Msg("[LeadHandler] Update request received")
+
 	var req requests.UpdateLeadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error().Err(err).Msg("[LeadHandler] Update failed to bind request body")
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	lead, err := h.leadApi.UpdateStatus(c.Request.Context(), c.Param("id"), req.Status, req.Notes)
+	h.logger.Info().Str("leadID", leadID).Str("status", req.Status).Msg("[LeadHandler] Update processing")
+
+	lead, err := h.leadApi.UpdateStatus(c.Request.Context(), leadID, req.Status, req.Notes)
 	if err != nil {
+		h.logger.Error().Err(err).Str("leadID", leadID).Msg("[LeadHandler] Update failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Str("leadID", leadID).Msg("[LeadHandler] Update succeeded")
+
 	c.JSON(http.StatusOK, toLeadResponse(lead))
 }
 

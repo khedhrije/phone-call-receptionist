@@ -13,7 +13,6 @@ import (
 	"phone-call-receptionist/backend/internal/domain/api"
 	"phone-call-receptionist/backend/internal/domain/port"
 	"phone-call-receptionist/backend/internal/infrastructure/claude"
-	"phone-call-receptionist/backend/internal/infrastructure/deepgram"
 	"phone-call-receptionist/backend/internal/infrastructure/deepseek"
 	"phone-call-receptionist/backend/internal/infrastructure/elevenlabs"
 	"phone-call-receptionist/backend/internal/infrastructure/filesystem"
@@ -76,11 +75,17 @@ func Initialize(logger *zerolog.Logger) (*App, error) {
 	}
 	vectorDB := infraWeaviate.NewWeaviateAdapter(weaviateClient, logger)
 
-	// LLM providers
+	// LLM providers — ordered by preference: Gemini → Mistral → DeepSeek → others
 	var llmProviders []port.LLM
 	geminiAdapter := gemini.NewGeminiAdapter(cfg.LLM.GeminiAPIKey, logger)
 	if cfg.LLM.GeminiAPIKey != "" {
 		llmProviders = append(llmProviders, geminiAdapter)
+	}
+	if cfg.LLM.MistralAPIKey != "" {
+		llmProviders = append(llmProviders, mistral.NewMistralAdapter(cfg.LLM.MistralAPIKey, logger))
+	}
+	if cfg.LLM.DeepSeekAPIKey != "" {
+		llmProviders = append(llmProviders, deepseek.NewDeepSeekAdapter(cfg.LLM.DeepSeekAPIKey, logger))
 	}
 	if cfg.LLM.ClaudeAPIKey != "" {
 		llmProviders = append(llmProviders, claude.NewClaudeAdapter(cfg.LLM.ClaudeAPIKey, logger))
@@ -91,19 +96,13 @@ func Initialize(logger *zerolog.Logger) (*App, error) {
 	if cfg.LLM.GLMAPIKey != "" {
 		llmProviders = append(llmProviders, glm.NewGLMAdapter(cfg.LLM.GLMAPIKey, logger))
 	}
-	if cfg.LLM.MistralAPIKey != "" {
-		llmProviders = append(llmProviders, mistral.NewMistralAdapter(cfg.LLM.MistralAPIKey, logger))
-	}
-	if cfg.LLM.DeepSeekAPIKey != "" {
-		llmProviders = append(llmProviders, deepseek.NewDeepSeekAdapter(cfg.LLM.DeepSeekAPIKey, logger))
-	}
 
 	llmRouter := llm.NewRouter(llmProviders, logger)
 	var embeddingPort port.Embedding = geminiAdapter
 
 	// External services
 	ttsPort := elevenlabs.NewElevenLabsAdapter(cfg.Voice.ElevenLabsAPIKey, logger)
-	_ = deepgram.NewDeepgramAdapter(cfg.Voice.DeepgramAPIKey, logger)
+	_ = geminiAdapter.AsSpeechToText()
 	voiceCallerPort := twilio.NewTwilioAdapter(cfg.Voice.TwilioAccountSID, cfg.Voice.TwilioAuthToken, cfg.Voice.TwilioPhoneNumber, logger)
 
 	calendarPort, err := googlecalendar.NewGoogleCalendarAdapter(cfg.GoogleCalendar.CredentialsJSON, cfg.GoogleCalendar.CalendarID, logger)
@@ -144,7 +143,7 @@ func Initialize(logger *zerolog.Logger) (*App, error) {
 		Dashboard:   handlers.NewDashboardHandler(dashboardApi, logger),
 		Settings:    handlers.NewSettingsHandler(settingsPort, logger),
 		Webhook:     handlers.NewWebhookHandler(voiceCallApi, logger),
-		Health:      handlers.NewHealthHandler(),
+		Health:      handlers.NewHealthHandler(logger),
 		WS:          handlers.NewWSHandler(wsHub, logger),
 	}
 

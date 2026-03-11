@@ -34,11 +34,17 @@ func NewSettingsHandler(settingsPort port.SystemSettings, logger *zerolog.Logger
 //	@Security		BearerAuth
 //	@Router			/settings [get]
 func (h *SettingsHandler) Find(c *gin.Context) {
+	h.logger.Info().Msg("[SettingsHandler] Find request received")
+
 	settings, err := h.settingsPort.Find(c.Request.Context())
 	if err != nil {
+		h.logger.Error().Err(err).Msg("[SettingsHandler] Find failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Msg("[SettingsHandler] Find succeeded")
+
 	c.JSON(http.StatusOK, responses.SystemSettingsResponse{
 		DefaultLLMProvider:  settings.DefaultLLMProvider,
 		DefaultVoiceID:      settings.DefaultVoiceID,
@@ -60,14 +66,25 @@ func (h *SettingsHandler) Find(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Router			/settings [put]
 func (h *SettingsHandler) Update(c *gin.Context) {
+	h.logger.Info().Msg("[SettingsHandler] Update request received")
+
 	var req requests.UpdateSettingsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error().Err(err).Msg("[SettingsHandler] Update failed to bind request body")
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{Error: err.Error()})
 		return
 	}
 
+	h.logger.Info().
+		Str("defaultLLMProvider", req.DefaultLLMProvider).
+		Str("defaultVoiceID", req.DefaultVoiceID).
+		Int("topK", req.TopK).
+		Int("maxCallDurationSecs", req.MaxCallDurationSecs).
+		Msg("[SettingsHandler] Update processing settings")
+
 	current, err := h.settingsPort.Find(c.Request.Context())
 	if err != nil {
+		h.logger.Error().Err(err).Msg("[SettingsHandler] Update failed to fetch current settings")
 		HandleError(c, err)
 		return
 	}
@@ -93,9 +110,12 @@ func (h *SettingsHandler) Update(c *gin.Context) {
 		MaxCallDurationSecs: current.MaxCallDurationSecs,
 		UpdatedAt:           current.UpdatedAt,
 	}); err != nil {
+		h.logger.Error().Err(err).Msg("[SettingsHandler] Update failed to save settings")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Msg("[SettingsHandler] Update succeeded")
 
 	c.JSON(http.StatusOK, responses.SystemSettingsResponse{
 		DefaultLLMProvider:  current.DefaultLLMProvider,

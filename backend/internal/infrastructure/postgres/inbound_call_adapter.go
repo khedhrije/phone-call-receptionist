@@ -25,8 +25,11 @@ func NewInboundCallAdapter(client *Client, logger *zerolog.Logger) port.InboundC
 
 // Create persists a new inbound call record to PostgreSQL.
 func (a *inboundCallAdapter) Create(ctx context.Context, call model.InboundCall) error {
+	a.logger.Debug().Str("id", call.ID).Str("callerPhone", call.CallerPhone).Msg("[PostgresInboundCall] creating inbound call")
+
 	var db InboundCallDB
 	if err := db.FromDomain(call); err != nil {
+		a.logger.Error().Err(err).Str("id", call.ID).Msg("[PostgresInboundCall] failed to convert to db entity")
 		return fmt.Errorf("failed to convert inbound call to db entity: %w", err)
 	}
 
@@ -37,49 +40,65 @@ func (a *inboundCallAdapter) Create(ctx context.Context, call model.InboundCall)
 
 	_, err := a.client.DB.NamedExecContext(ctx, query, db)
 	if err != nil {
+		a.logger.Error().Err(err).Str("id", call.ID).Msg("[PostgresInboundCall] failed to create inbound call")
 		return fmt.Errorf("failed to create inbound call: %w", err)
 	}
+
+	a.logger.Debug().Str("id", call.ID).Msg("[PostgresInboundCall] inbound call created")
 	return nil
 }
 
 // FindByID retrieves an inbound call by its unique identifier from PostgreSQL.
 func (a *inboundCallAdapter) FindByID(ctx context.Context, id string) (model.InboundCall, error) {
+	a.logger.Debug().Str("id", id).Msg("[PostgresInboundCall] finding inbound call by ID")
+
 	var db InboundCallDB
 	query := `SELECT id, twilio_call_sid, caller_phone, status, transcript, rag_queries,
 	           duration_seconds, twilio_cost_usd, llm_cost_usd, total_cost_usd, created_at, ended_at
 	           FROM inbound_calls WHERE id = $1`
 
 	if err := a.client.DB.GetContext(ctx, &db, query, id); err != nil {
+		a.logger.Error().Err(err).Str("id", id).Msg("[PostgresInboundCall] failed to find inbound call by ID")
 		return model.InboundCall{}, fmt.Errorf("failed to find inbound call by id: %w", err)
 	}
 
 	call, err := db.ToDomain()
 	if err != nil {
+		a.logger.Error().Err(err).Str("id", id).Msg("[PostgresInboundCall] failed to convert to domain")
 		return model.InboundCall{}, fmt.Errorf("failed to convert inbound call to domain: %w", err)
 	}
+
+	a.logger.Debug().Str("id", id).Msg("[PostgresInboundCall] inbound call found")
 	return call, nil
 }
 
 // FindByTwilioSID retrieves an inbound call by its Twilio call SID from PostgreSQL.
 func (a *inboundCallAdapter) FindByTwilioSID(ctx context.Context, sid string) (model.InboundCall, error) {
+	a.logger.Debug().Str("sid", sid).Msg("[PostgresInboundCall] finding inbound call by Twilio SID")
+
 	var db InboundCallDB
 	query := `SELECT id, twilio_call_sid, caller_phone, status, transcript, rag_queries,
 	           duration_seconds, twilio_cost_usd, llm_cost_usd, total_cost_usd, created_at, ended_at
 	           FROM inbound_calls WHERE twilio_call_sid = $1`
 
 	if err := a.client.DB.GetContext(ctx, &db, query, sid); err != nil {
+		a.logger.Error().Err(err).Str("sid", sid).Msg("[PostgresInboundCall] failed to find inbound call by Twilio SID")
 		return model.InboundCall{}, fmt.Errorf("failed to find inbound call by twilio sid: %w", err)
 	}
 
 	call, err := db.ToDomain()
 	if err != nil {
+		a.logger.Error().Err(err).Str("sid", sid).Msg("[PostgresInboundCall] failed to convert to domain")
 		return model.InboundCall{}, fmt.Errorf("failed to convert inbound call to domain: %w", err)
 	}
+
+	a.logger.Debug().Str("sid", sid).Str("id", call.ID).Msg("[PostgresInboundCall] inbound call found by Twilio SID")
 	return call, nil
 }
 
 // List retrieves inbound calls matching the given filters from PostgreSQL.
 func (a *inboundCallAdapter) List(ctx context.Context, filters port.CallFilters) ([]model.InboundCall, int, error) {
+	a.logger.Debug().Int("limit", filters.Limit).Int("offset", filters.Offset).Msg("[PostgresInboundCall] listing inbound calls")
 	var conditions []string
 	args := make(map[string]interface{})
 
@@ -118,6 +137,7 @@ func (a *inboundCallAdapter) List(ctx context.Context, filters port.CallFilters)
 
 	var total int
 	if err := a.client.DB.GetContext(ctx, &total, countStmt, countArgs...); err != nil {
+		a.logger.Error().Err(err).Msg("[PostgresInboundCall] failed to count inbound calls")
 		return nil, 0, fmt.Errorf("failed to count inbound calls: %w", err)
 	}
 
@@ -136,6 +156,7 @@ func (a *inboundCallAdapter) List(ctx context.Context, filters port.CallFilters)
 
 	var rows []InboundCallDB
 	if err := a.client.DB.SelectContext(ctx, &rows, selectStmt, selectArgs...); err != nil {
+		a.logger.Error().Err(err).Msg("[PostgresInboundCall] failed to list inbound calls")
 		return nil, 0, fmt.Errorf("failed to list inbound calls: %w", err)
 	}
 
@@ -143,17 +164,23 @@ func (a *inboundCallAdapter) List(ctx context.Context, filters port.CallFilters)
 	for i, row := range rows {
 		call, err := row.ToDomain()
 		if err != nil {
+			a.logger.Error().Err(err).Msg("[PostgresInboundCall] failed to convert to domain")
 			return nil, 0, fmt.Errorf("failed to convert inbound call to domain: %w", err)
 		}
 		calls[i] = call
 	}
+
+	a.logger.Debug().Int("count", len(calls)).Int("total", total).Msg("[PostgresInboundCall] inbound calls listed")
 	return calls, total, nil
 }
 
 // Update modifies an existing inbound call's data in PostgreSQL.
 func (a *inboundCallAdapter) Update(ctx context.Context, call model.InboundCall) error {
+	a.logger.Debug().Str("id", call.ID).Str("status", call.Status).Msg("[PostgresInboundCall] updating inbound call")
+
 	var db InboundCallDB
 	if err := db.FromDomain(call); err != nil {
+		a.logger.Error().Err(err).Str("id", call.ID).Msg("[PostgresInboundCall] failed to convert to db entity")
 		return fmt.Errorf("failed to convert inbound call to db entity: %w", err)
 	}
 
@@ -165,7 +192,10 @@ func (a *inboundCallAdapter) Update(ctx context.Context, call model.InboundCall)
 
 	_, err := a.client.DB.NamedExecContext(ctx, query, db)
 	if err != nil {
+		a.logger.Error().Err(err).Str("id", call.ID).Msg("[PostgresInboundCall] failed to update inbound call")
 		return fmt.Errorf("failed to update inbound call: %w", err)
 	}
+
+	a.logger.Debug().Str("id", call.ID).Msg("[PostgresInboundCall] inbound call updated")
 	return nil
 }

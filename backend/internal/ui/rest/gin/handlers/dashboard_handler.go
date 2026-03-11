@@ -31,11 +31,17 @@ func NewDashboardHandler(dashboardApi *api.DashboardApi, logger *zerolog.Logger)
 //	@Security		BearerAuth
 //	@Router			/dashboard/stats [get]
 func (h *DashboardHandler) Stats(c *gin.Context) {
+	h.logger.Info().Msg("[DashboardHandler] Stats request received")
+
 	stats, err := h.dashboardApi.Stats(c.Request.Context())
 	if err != nil {
+		h.logger.Error().Err(err).Msg("[DashboardHandler] Stats failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Msg("[DashboardHandler] Stats succeeded")
+
 	c.JSON(http.StatusOK, stats)
 }
 
@@ -53,16 +59,24 @@ func (h *DashboardHandler) Stats(c *gin.Context) {
 func (h *DashboardHandler) Costs(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
+
+	h.logger.Info().Str("from", from).Str("to", to).Msg("[DashboardHandler] Costs request received")
+
 	if from == "" || to == "" {
+		h.logger.Error().Msg("[DashboardHandler] Costs missing from/to query parameters")
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{Error: "from and to are required"})
 		return
 	}
 
 	analytics, err := h.dashboardApi.CostAnalytics(c.Request.Context(), from, to)
 	if err != nil {
+		h.logger.Error().Err(err).Str("from", from).Str("to", to).Msg("[DashboardHandler] Costs failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Str("from", from).Str("to", to).Msg("[DashboardHandler] Costs succeeded")
+
 	c.JSON(http.StatusOK, analytics)
 }
 
@@ -80,15 +94,23 @@ func (h *DashboardHandler) Costs(c *gin.Context) {
 func (h *DashboardHandler) Volume(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
+
+	h.logger.Info().Str("from", from).Str("to", to).Msg("[DashboardHandler] Volume request received")
+
 	if from == "" || to == "" {
+		h.logger.Error().Msg("[DashboardHandler] Volume missing from/to query parameters")
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{Error: "from and to are required"})
 		return
 	}
 
 	volume, err := h.dashboardApi.CallVolume(c.Request.Context(), from, to)
 	if err != nil {
+		h.logger.Error().Err(err).Str("from", from).Str("to", to).Msg("[DashboardHandler] Volume failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Str("from", from).Str("to", to).Msg("[DashboardHandler] Volume succeeded")
+
 	c.JSON(http.StatusOK, volume)
 }

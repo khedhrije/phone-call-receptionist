@@ -40,6 +40,8 @@ func NewCallHandler(voiceCallApi *api.VoiceCallApi, dashboardApi *api.DashboardA
 //	@Security		BearerAuth
 //	@Router			/calls [get]
 func (h *CallHandler) List(c *gin.Context) {
+	h.logger.Info().Msg("[CallHandler] List request received")
+
 	var pagination requests.PaginationRequest
 	c.ShouldBindQuery(&pagination)
 
@@ -51,8 +53,17 @@ func (h *CallHandler) List(c *gin.Context) {
 		Offset: pagination.Offset(),
 	}
 
+	h.logger.Info().
+		Str("status", filters.Status).
+		Str("from", filters.From).
+		Str("to", filters.To).
+		Int("limit", filters.Limit).
+		Int("offset", filters.Offset).
+		Msg("[CallHandler] List fetching calls with filters")
+
 	calls, total, err := h.voiceCallApi.CallHistory(c.Request.Context(), filters)
 	if err != nil {
+		h.logger.Error().Err(err).Msg("[CallHandler] List failed to fetch calls")
 		HandleError(c, err)
 		return
 	}
@@ -61,6 +72,8 @@ func (h *CallHandler) List(c *gin.Context) {
 	for _, call := range calls {
 		items = append(items, toCallResponse(call))
 	}
+
+	h.logger.Info().Int("total", total).Int("count", len(items)).Msg("[CallHandler] List succeeded")
 
 	c.JSON(http.StatusOK, responses.PaginatedResponse{
 		Items: items, Total: total,
@@ -79,11 +92,18 @@ func (h *CallHandler) List(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Router			/calls/{id} [get]
 func (h *CallHandler) Detail(c *gin.Context) {
-	call, err := h.voiceCallApi.CallDetail(c.Request.Context(), c.Param("id"))
+	callID := c.Param("id")
+	h.logger.Info().Str("callID", callID).Msg("[CallHandler] Detail request received")
+
+	call, err := h.voiceCallApi.CallDetail(c.Request.Context(), callID)
 	if err != nil {
+		h.logger.Error().Err(err).Str("callID", callID).Msg("[CallHandler] Detail failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Str("callID", callID).Msg("[CallHandler] Detail succeeded")
+
 	c.JSON(http.StatusOK, toCallResponse(call))
 }
 
@@ -98,8 +118,12 @@ func (h *CallHandler) Detail(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Router			/calls/{id}/rag-queries [get]
 func (h *CallHandler) RAGQueries(c *gin.Context) {
-	call, err := h.voiceCallApi.CallDetail(c.Request.Context(), c.Param("id"))
+	callID := c.Param("id")
+	h.logger.Info().Str("callID", callID).Msg("[CallHandler] RAGQueries request received")
+
+	call, err := h.voiceCallApi.CallDetail(c.Request.Context(), callID)
 	if err != nil {
+		h.logger.Error().Err(err).Str("callID", callID).Msg("[CallHandler] RAGQueries failed to fetch call")
 		HandleError(c, err)
 		return
 	}
@@ -111,6 +135,9 @@ func (h *CallHandler) RAGQueries(c *gin.Context) {
 			Provider: q.Provider, Tokens: q.Tokens, At: q.At,
 		})
 	}
+
+	h.logger.Info().Str("callID", callID).Int("queryCount", len(items)).Msg("[CallHandler] RAGQueries succeeded")
+
 	c.JSON(http.StatusOK, items)
 }
 
@@ -124,11 +151,17 @@ func (h *CallHandler) RAGQueries(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Router			/calls/stats [get]
 func (h *CallHandler) Stats(c *gin.Context) {
+	h.logger.Info().Msg("[CallHandler] Stats request received")
+
 	stats, err := h.dashboardApi.Stats(c.Request.Context())
 	if err != nil {
+		h.logger.Error().Err(err).Msg("[CallHandler] Stats failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Msg("[CallHandler] Stats succeeded")
+
 	c.JSON(http.StatusOK, stats)
 }
 

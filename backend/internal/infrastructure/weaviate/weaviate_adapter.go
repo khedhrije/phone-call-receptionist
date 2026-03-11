@@ -34,8 +34,11 @@ func NewWeaviateAdapter(client *weaviate.Client, logger *zerolog.Logger) port.Ve
 
 // EnsureClass creates the KnowledgeChunk class in Weaviate if it does not already exist.
 func (a *Adapter) EnsureClass(ctx context.Context) error {
+	a.logger.Debug().Str("class", className).Msg("[WeaviateAdapter] ensuring class exists")
+
 	exists, err := a.client.Schema().ClassExistenceChecker().WithClassName(className).Do(ctx)
 	if err != nil {
+		a.logger.Error().Err(err).Str("class", className).Msg("[WeaviateAdapter] failed to check class existence")
 		return fmt.Errorf("failed to check class existence: %w", err)
 	}
 	if exists {
@@ -74,15 +77,18 @@ func (a *Adapter) EnsureClass(ctx context.Context) error {
 
 	err = a.client.Schema().ClassCreator().WithClass(classObj).Do(ctx)
 	if err != nil {
+		a.logger.Error().Err(err).Str("class", className).Msg("[WeaviateAdapter] failed to create class")
 		return fmt.Errorf("failed to create weaviate class: %w", err)
 	}
 
-	a.logger.Info().Str("class", className).Msg("Created Weaviate class")
+	a.logger.Info().Str("class", className).Msg("[WeaviateAdapter] created class")
 	return nil
 }
 
-// Store persists a chunk with its embedding to the Weaviate vector database.
-func (a *Adapter) Store(ctx context.Context, chunk model.Chunk) error {
+// Create persists a chunk with its embedding to the Weaviate vector database.
+func (a *Adapter) Create(ctx context.Context, chunk model.Chunk) error {
+	a.logger.Debug().Str("chunkID", chunk.ID).Str("documentID", chunk.DocumentID).Msg("[WeaviateAdapter] storing chunk")
+
 	properties := map[string]interface{}{
 		"documentID": chunk.DocumentID,
 		"content":    chunk.Content,
@@ -97,19 +103,21 @@ func (a *Adapter) Store(ctx context.Context, chunk model.Chunk) error {
 		WithVector(chunk.Embedding).
 		Do(ctx)
 	if err != nil {
+		a.logger.Error().Err(err).Str("chunkID", chunk.ID).Str("documentID", chunk.DocumentID).Msg("[WeaviateAdapter] failed to store chunk")
 		return fmt.Errorf("failed to store chunk in weaviate: %w", err)
 	}
 
 	a.logger.Debug().
 		Str("chunkID", chunk.ID).
 		Str("documentID", chunk.DocumentID).
-		Msg("Stored chunk in Weaviate")
+		Msg("[WeaviateAdapter] stored chunk")
 
 	return nil
 }
 
 // Search finds the most similar chunks to the given embedding vector.
 func (a *Adapter) Search(ctx context.Context, embedding []float32, topK int) ([]model.Chunk, error) {
+	a.logger.Debug().Int("topK", topK).Int("embeddingLen", len(embedding)).Msg("[WeaviateAdapter] searching chunks")
 	nearVector := a.client.GraphQL().NearVectorArgBuilder().WithVector(embedding)
 
 	fields := []graphql.Field{
@@ -127,10 +135,12 @@ func (a *Adapter) Search(ctx context.Context, embedding []float32, topK int) ([]
 		WithLimit(topK).
 		Do(ctx)
 	if err != nil {
+		a.logger.Error().Err(err).Int("topK", topK).Msg("[WeaviateAdapter] failed to search chunks")
 		return nil, fmt.Errorf("failed to search weaviate: %w", err)
 	}
 
 	if result.Errors != nil && len(result.Errors) > 0 {
+		a.logger.Error().Str("error", result.Errors[0].Message).Msg("[WeaviateAdapter] search returned errors")
 		return nil, fmt.Errorf("failed to search weaviate: %s", result.Errors[0].Message)
 	}
 
@@ -165,12 +175,13 @@ func (a *Adapter) Search(ctx context.Context, embedding []float32, topK int) ([]
 		chunks = append(chunks, chunk)
 	}
 
-	a.logger.Debug().Int("results", len(chunks)).Msg("Weaviate search completed")
+	a.logger.Debug().Int("results", len(chunks)).Msg("[WeaviateAdapter] search completed")
 	return chunks, nil
 }
 
 // DeleteByDocumentID removes all chunks belonging to a specific document.
 func (a *Adapter) DeleteByDocumentID(ctx context.Context, documentID string) error {
+	a.logger.Debug().Str("documentID", documentID).Msg("[WeaviateAdapter] deleting chunks by document ID")
 	where := filters.Where().
 		WithPath([]string{"documentID"}).
 		WithOperator(filters.Equal).
@@ -181,13 +192,14 @@ func (a *Adapter) DeleteByDocumentID(ctx context.Context, documentID string) err
 		WithWhere(where).
 		Do(ctx)
 	if err != nil {
+		a.logger.Error().Err(err).Str("documentID", documentID).Msg("[WeaviateAdapter] failed to delete chunks")
 		return fmt.Errorf("failed to delete chunks from weaviate: %w", err)
 	}
 
 	a.logger.Info().
 		Str("documentID", documentID).
 		Int64("deleted", result.Results.Matches).
-		Msg("Deleted chunks from Weaviate")
+		Msg("[WeaviateAdapter] deleted chunks")
 
 	return nil
 }

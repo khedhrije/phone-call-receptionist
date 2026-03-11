@@ -24,6 +24,8 @@ func NewLeadAdapter(client *Client, logger *zerolog.Logger) port.Lead {
 
 // Create persists a new lead to PostgreSQL.
 func (a *leadAdapter) Create(ctx context.Context, lead model.Lead) error {
+	a.logger.Debug().Str("id", lead.ID).Str("phone", lead.Phone).Msg("[PostgresLead] creating lead")
+
 	var db LeadDB
 	db.FromDomain(lead)
 
@@ -32,20 +34,28 @@ func (a *leadAdapter) Create(ctx context.Context, lead model.Lead) error {
 
 	_, err := a.client.DB.NamedExecContext(ctx, query, db)
 	if err != nil {
+		a.logger.Error().Err(err).Str("id", lead.ID).Msg("[PostgresLead] failed to create lead")
 		return fmt.Errorf("failed to create lead: %w", err)
 	}
+
+	a.logger.Debug().Str("id", lead.ID).Msg("[PostgresLead] lead created")
 	return nil
 }
 
 // FindByID retrieves a lead by its unique identifier from PostgreSQL.
 func (a *leadAdapter) FindByID(ctx context.Context, id string) (model.Lead, error) {
+	a.logger.Debug().Str("id", id).Msg("[PostgresLead] finding lead by ID")
+
 	var db LeadDB
 	query := `SELECT id, call_id, phone, name, email, status, notes, created_at, updated_at
 	           FROM leads WHERE id = $1`
 
 	if err := a.client.DB.GetContext(ctx, &db, query, id); err != nil {
+		a.logger.Error().Err(err).Str("id", id).Msg("[PostgresLead] failed to find lead by ID")
 		return model.Lead{}, fmt.Errorf("failed to find lead by id: %w", err)
 	}
+
+	a.logger.Debug().Str("id", id).Msg("[PostgresLead] lead found")
 	return db.ToDomain(), nil
 }
 

@@ -47,19 +47,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: voice_ai
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_SSL_MODE: disable
+    command: ["-path", "/migrations", "-database", "postgres://postgres:postgres@postgres:5432/voice_ai?sslmode=disable", "up"]
 
   backend:
     build:
       context: ./backend
     ports:
-      - "8080:8080"
+      - "8082:8082"
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,14 +67,19 @@ services:
       - .env
     environment:
       DB_HOST: postgres
+      DB_PORT: 5432
       REDIS_HOST: redis
       WEAVIATE_HOST: weaviate
+      WEAVIATE_PORT: 8080
 
   frontend:
     build:
       context: ./frontend
     ports:
       - "3000:3000"
+    environment:
+      API_BASE_URL: http://backend:8082/api
+      WS_BASE_URL: ws://backend:8082/ws
 
   nginx:
     image: nginx:alpine

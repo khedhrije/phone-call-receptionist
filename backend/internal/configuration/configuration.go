@@ -117,8 +117,6 @@ type VoiceConfig struct {
 	TwilioPhoneNumber string
 	// ElevenLabsAPIKey is the ElevenLabs TTS API key.
 	ElevenLabsAPIKey string
-	// DeepgramAPIKey is the Deepgram STT API key.
-	DeepgramAPIKey string
 }
 
 // GoogleCalendarConfig holds Google Calendar API settings.
@@ -187,7 +185,6 @@ func loadFromEnv() *AppConfig {
 			TwilioAuthToken:   viper.GetString("TWILIO_AUTH_TOKEN"),
 			TwilioPhoneNumber: viper.GetString("TWILIO_PHONE_NUMBER"),
 			ElevenLabsAPIKey:  viper.GetString("ELEVENLABS_API_KEY"),
-			DeepgramAPIKey:    viper.GetString("DEEPGRAM_API_KEY"),
 		},
 		GoogleCalendar: GoogleCalendarConfig{
 			CredentialsJSON: viper.GetString("GOOGLE_CALENDAR_CREDENTIALS_JSON"),
@@ -202,21 +199,5 @@ func loadFromEnv() *AppConfig {
 }
 
 func setDefaults() {
-	viper.SetDefault("PORT", "8080")
-	viper.SetDefault("ENV", "development")
-	viper.SetDefault("JWT_EXPIRY_HOURS", 24)
-	viper.SetDefault("DB_HOST", "localhost")
-	viper.SetDefault("DB_PORT", "5432")
-	viper.SetDefault("DB_NAME", "voice_ai")
-	viper.SetDefault("DB_USER", "postgres")
-	viper.SetDefault("DB_PASSWORD", "postgres")
-	viper.SetDefault("DB_SSL_MODE", "disable")
-	viper.SetDefault("REDIS_HOST", "localhost")
-	viper.SetDefault("REDIS_PORT", "6379")
-	viper.SetDefault("WEAVIATE_HOST", "localhost")
-	viper.SetDefault("WEAVIATE_PORT", "8081")
-	viper.SetDefault("WEAVIATE_SCHEME", "http")
-	viper.SetDefault("UPLOAD_PATH", "./uploads")
-	viper.SetDefault("AUDIO_CACHE_PATH", "./audio_cache")
-	viper.SetDefault("FRONTEND_URL", "http://localhost:3000")
+	// No defaults — all values must be provided via .env or environment variables.
 }

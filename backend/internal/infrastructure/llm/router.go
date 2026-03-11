@@ -13,8 +13,9 @@ import (
 // Router implements port.LLM by trying multiple LLM providers in order.
 // It returns the first successful response, falling back to the next provider on failure.
 type Router struct {
-	providers []port.LLM
-	logger    *zerolog.Logger
+	providers    []port.LLM
+	lastProvider string
+	logger       *zerolog.Logger
 }
 
 // NewRouter creates a new LLM router with the given ordered list of providers.
@@ -41,8 +42,9 @@ func (r *Router) Generate(ctx context.Context, systemPrompt string, userPrompt s
 			continue
 		}
 
+		r.lastProvider = p.Provider()
 		r.logger.Debug().
-			Str("provider", p.Provider()).
+			Str("provider", r.lastProvider).
 			Int("tokens", tokens).
 			Msg("LLM generation succeeded")
 
@@ -56,7 +58,13 @@ func (r *Router) Generate(ctx context.Context, systemPrompt string, userPrompt s
 	return "", 0, fmt.Errorf("failed to generate: no providers configured")
 }
 
-// Provider returns the name of the LLM router.
+// Provider returns the name of the last successful LLM provider.
 func (r *Router) Provider() string {
+	if r.lastProvider != "" {
+		return r.lastProvider
+	}
+	if len(r.providers) > 0 {
+		return r.providers[0].Provider()
+	}
 	return "router"
 }

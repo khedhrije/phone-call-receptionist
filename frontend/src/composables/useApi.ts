@@ -10,9 +10,13 @@ export const useApi = () => {
 
   const request = async <T>(path: string, options: any = {}): Promise<T> => {
     try {
+      const h = { ...headers.value, ...options.headers }
+      if (options.body instanceof FormData) {
+        delete h['Content-Type']
+      }
       return await $fetch<T>(`${config.public.apiBase}${path}`, {
         ...options,
-        headers: { ...headers.value, ...options.headers },
+        headers: h,
       })
     } catch (err: any) {
       if (err?.response?.status === 401) logout()
@@ -30,6 +34,6 @@ export const useApi = () => {
     del: <T>(path: string) =>
       request<T>(path, { method: 'DELETE' }),
     upload: <T>(path: string, formData: FormData) =>
-      request<T>(path, { method: 'POST', body: formData, headers: { Authorization: `Bearer ${token.value}` } }),
+      request<T>(path, { method: 'POST', body: formData }),
   }
 }

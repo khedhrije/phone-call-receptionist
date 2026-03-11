@@ -26,10 +26,11 @@ func NewGoogleCalendarAdapter(credentialsJSON string, calendarID string, logger 
 	ctx := context.Background()
 	srv, err := calendar.NewService(ctx, option.WithCredentialsJSON([]byte(credentialsJSON)))
 	if err != nil {
+		logger.Error().Err(err).Msg("[GoogleCalendarAdapter] failed to create service")
 		return nil, fmt.Errorf("failed to create google calendar service: %w", err)
 	}
 
-	logger.Info().Str("calendarID", calendarID).Msg("Connected to Google Calendar")
+	logger.Info().Str("calendarID", calendarID).Msg("[GoogleCalendarAdapter] connected")
 
 	return &Adapter{
 		service:    srv,
@@ -41,6 +42,7 @@ func NewGoogleCalendarAdapter(credentialsJSON string, calendarID string, logger 
 // CheckAvailability returns available time slots within the given time range
 // by querying the Google Calendar FreeBusy API.
 func (a *Adapter) CheckAvailability(ctx context.Context, from string, to string) ([]model.TimeSlot, error) {
+	a.logger.Debug().Str("from", from).Str("to", to).Msg("[GoogleCalendarAdapter] checking availability")
 	freeBusyReq := &calendar.FreeBusyRequest{
 		TimeMin: from,
 		TimeMax: to,
@@ -51,6 +53,7 @@ func (a *Adapter) CheckAvailability(ctx context.Context, from string, to string)
 
 	resp, err := a.service.Freebusy.Query(freeBusyReq).Context(ctx).Do()
 	if err != nil {
+		a.logger.Error().Err(err).Str("from", from).Str("to", to).Msg("[GoogleCalendarAdapter] failed to query freebusy")
 		return nil, fmt.Errorf("failed to query freebusy: %w", err)
 	}
 
@@ -62,10 +65,12 @@ func (a *Adapter) CheckAvailability(ctx context.Context, from string, to string)
 
 	fromTime, err := time.Parse(time.RFC3339, from)
 	if err != nil {
+		a.logger.Error().Err(err).Str("from", from).Msg("[GoogleCalendarAdapter] failed to parse from time")
 		return nil, fmt.Errorf("failed to parse from time: %w", err)
 	}
 	toTime, err := time.Parse(time.RFC3339, to)
 	if err != nil {
+		a.logger.Error().Err(err).Str("to", to).Msg("[GoogleCalendarAdapter] failed to parse to time")
 		return nil, fmt.Errorf("failed to parse to time: %w", err)
 	}
 
@@ -75,7 +80,7 @@ func (a *Adapter) CheckAvailability(ctx context.Context, from string, to string)
 		Int("freeSlots", len(slots)).
 		Str("from", from).
 		Str("to", to).
-		Msg("Google Calendar availability checked")
+		Msg("[GoogleCalendarAdapter] availability checked")
 
 	return slots, nil
 }
@@ -119,46 +124,55 @@ func buildFreeSlots(from time.Time, to time.Time, busy []*calendar.TimePeriod) [
 // CreateEvent creates a calendar event for the given appointment.
 // Returns the external event ID and any error.
 func (a *Adapter) CreateEvent(ctx context.Context, appt model.Appointment) (string, error) {
+	a.logger.Debug().Str("appointmentID", appt.ID).Str("scheduledAt", appt.ScheduledAt).Msg("[GoogleCalendarAdapter] creating event")
+
 	event := appointmentToEvent(appt)
 
 	created, err := a.service.Events.Insert(a.calendarID, event).Context(ctx).Do()
 	if err != nil {
+		a.logger.Error().Err(err).Str("appointmentID", appt.ID).Msg("[GoogleCalendarAdapter] failed to create event")
 		return "", fmt.Errorf("failed to create calendar event: %w", err)
 	}
 
 	a.logger.Info().
 		Str("eventID", created.Id).
 		Str("appointmentID", appt.ID).
-		Msg("Google Calendar event created")
+		Msg("[GoogleCalendarAdapter] event created")
 
 	return created.Id, nil
 }
 
 // UpdateEvent modifies an existing calendar event.
 func (a *Adapter) UpdateEvent(ctx context.Context, eventID string, appt model.Appointment) error {
+	a.logger.Debug().Str("eventID", eventID).Str("appointmentID", appt.ID).Msg("[GoogleCalendarAdapter] updating event")
+
 	event := appointmentToEvent(appt)
 
 	_, err := a.service.Events.Update(a.calendarID, eventID, event).Context(ctx).Do()
 	if err != nil {
+		a.logger.Error().Err(err).Str("eventID", eventID).Str("appointmentID", appt.ID).Msg("[GoogleCalendarAdapter] failed to update event")
 		return fmt.Errorf("failed to update calendar event: %w", err)
 	}
 
 	a.logger.Info().
 		Str("eventID", eventID).
 		Str("appointmentID", appt.ID).
-		Msg("Google Calendar event updated")
+		Msg("[GoogleCalendarAdapter] event updated")
 
 	return nil
 }
 
 // DeleteEvent removes a calendar event by its external event ID.
 func (a *Adapter) DeleteEvent(ctx context.Context, eventID string) error {
+	a.logger.Debug().Str("eventID", eventID).Msg("[GoogleCalendarAdapter] deleting event")
+
 	err := a.service.Events.Delete(a.calendarID, eventID).Context(ctx).Do()
 	if err != nil {
+		a.logger.Error().Err(err).Str("eventID", eventID).Msg("[GoogleCalendarAdapter] failed to delete event")
 		return fmt.Errorf("failed to delete calendar event: %w", err)
 	}
 
-	a.logger.Info().Str("eventID", eventID).Msg("Google Calendar event deleted")
+	a.logger.Info().Str("eventID", eventID).Msg("[GoogleCalendarAdapter] event deleted")
 	return nil
 }
 

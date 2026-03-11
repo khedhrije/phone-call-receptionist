@@ -36,17 +36,29 @@ func NewAppointmentHandler(apptApi *api.AppointmentApi, logger *zerolog.Logger) 
 //	@Security		BearerAuth
 //	@Router			/appointments [post]
 func (h *AppointmentHandler) Create(c *gin.Context) {
+	h.logger.Info().Msg("[AppointmentHandler] Create request received")
+
 	var req requests.CreateAppointmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error().Err(err).Msg("[AppointmentHandler] Create failed to bind request body")
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{Error: err.Error()})
 		return
 	}
 
+	h.logger.Info().
+		Str("callerPhone", req.CallerPhone).
+		Str("serviceType", req.ServiceType).
+		Str("scheduledAt", req.ScheduledAt).
+		Msg("[AppointmentHandler] Create processing appointment")
+
 	appt, err := h.apptApi.Book(c.Request.Context(), "", req.CallerPhone, req.CallerName, req.CallerEmail, req.ServiceType, req.ScheduledAt, req.DurationMins, req.Notes)
 	if err != nil {
+		h.logger.Error().Err(err).Str("callerPhone", req.CallerPhone).Msg("[AppointmentHandler] Create failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Str("appointmentID", appt.ID).Msg("[AppointmentHandler] Create succeeded")
 
 	c.JSON(http.StatusCreated, toApptResponse(appt))
 }
@@ -64,6 +76,8 @@ func (h *AppointmentHandler) Create(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Router			/appointments [get]
 func (h *AppointmentHandler) List(c *gin.Context) {
+	h.logger.Info().Msg("[AppointmentHandler] List request received")
+
 	var pagination requests.PaginationRequest
 	c.ShouldBindQuery(&pagination)
 
@@ -73,8 +87,15 @@ func (h *AppointmentHandler) List(c *gin.Context) {
 		Offset: pagination.Offset(),
 	}
 
+	h.logger.Info().
+		Str("status", filters.Status).
+		Int("limit", filters.Limit).
+		Int("offset", filters.Offset).
+		Msg("[AppointmentHandler] List fetching appointments with filters")
+
 	appts, total, err := h.apptApi.List(c.Request.Context(), filters)
 	if err != nil {
+		h.logger.Error().Err(err).Msg("[AppointmentHandler] List failed")
 		HandleError(c, err)
 		return
 	}
@@ -83,6 +104,8 @@ func (h *AppointmentHandler) List(c *gin.Context) {
 	for _, a := range appts {
 		items = append(items, toApptResponse(a))
 	}
+
+	h.logger.Info().Int("total", total).Int("count", len(items)).Msg("[AppointmentHandler] List succeeded")
 
 	c.JSON(http.StatusOK, responses.PaginatedResponse{
 		Items: items, Total: total,
@@ -101,11 +124,18 @@ func (h *AppointmentHandler) List(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Router			/appointments/{id} [get]
 func (h *AppointmentHandler) FindByID(c *gin.Context) {
-	appt, err := h.apptApi.FindByID(c.Request.Context(), c.Param("id"))
+	apptID := c.Param("id")
+	h.logger.Info().Str("appointmentID", apptID).Msg("[AppointmentHandler] FindByID request received")
+
+	appt, err := h.apptApi.FindByID(c.Request.Context(), apptID)
 	if err != nil {
+		h.logger.Error().Err(err).Str("appointmentID", apptID).Msg("[AppointmentHandler] FindByID failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Str("appointmentID", apptID).Msg("[AppointmentHandler] FindByID succeeded")
+
 	c.JSON(http.StatusOK, toApptResponse(appt))
 }
 
@@ -122,17 +152,27 @@ func (h *AppointmentHandler) FindByID(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Router			/appointments/{id} [put]
 func (h *AppointmentHandler) Reschedule(c *gin.Context) {
+	apptID := c.Param("id")
+	h.logger.Info().Str("appointmentID", apptID).Msg("[AppointmentHandler] Reschedule request received")
+
 	var req requests.RescheduleAppointmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error().Err(err).Msg("[AppointmentHandler] Reschedule failed to bind request body")
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	appt, err := h.apptApi.Reschedule(c.Request.Context(), c.Param("id"), req.ScheduledAt)
+	h.logger.Info().Str("appointmentID", apptID).Str("scheduledAt", req.ScheduledAt).Msg("[AppointmentHandler] Reschedule processing")
+
+	appt, err := h.apptApi.Reschedule(c.Request.Context(), apptID, req.ScheduledAt)
 	if err != nil {
+		h.logger.Error().Err(err).Str("appointmentID", apptID).Msg("[AppointmentHandler] Reschedule failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Str("appointmentID", apptID).Msg("[AppointmentHandler] Reschedule succeeded")
+
 	c.JSON(http.StatusOK, toApptResponse(appt))
 }
 
@@ -147,10 +187,17 @@ func (h *AppointmentHandler) Reschedule(c *gin.Context) {
 //	@Security		BearerAuth
 //	@Router			/appointments/{id} [delete]
 func (h *AppointmentHandler) Cancel(c *gin.Context) {
-	if err := h.apptApi.Cancel(c.Request.Context(), c.Param("id")); err != nil {
+	apptID := c.Param("id")
+	h.logger.Info().Str("appointmentID", apptID).Msg("[AppointmentHandler] Cancel request received")
+
+	if err := h.apptApi.Cancel(c.Request.Context(), apptID); err != nil {
+		h.logger.Error().Err(err).Str("appointmentID", apptID).Msg("[AppointmentHandler] Cancel failed")
 		HandleError(c, err)
 		return
 	}
+
+	h.logger.Info().Str("appointmentID", apptID).Msg("[AppointmentHandler] Cancel succeeded")
+
 	c.Status(http.StatusNoContent)
 }
 
@@ -168,13 +215,18 @@ func (h *AppointmentHandler) Cancel(c *gin.Context) {
 func (h *AppointmentHandler) Availability(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
+
+	h.logger.Info().Str("from", from).Str("to", to).Msg("[AppointmentHandler] Availability request received")
+
 	if from == "" || to == "" {
+		h.logger.Error().Msg("[AppointmentHandler] Availability missing from/to query parameters")
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{Error: "from and to query parameters are required"})
 		return
 	}
 
 	slots, err := h.apptApi.Availability(c.Request.Context(), from, to)
 	if err != nil {
+		h.logger.Error().Err(err).Str("from", from).Str("to", to).Msg("[AppointmentHandler] Availability failed")
 		HandleError(c, err)
 		return
 	}
@@ -183,6 +235,9 @@ func (h *AppointmentHandler) Availability(c *gin.Context) {
 	for _, s := range slots {
 		items = append(items, responses.TimeSlotResponse{Start: s.Start, End: s.End})
 	}
+
+	h.logger.Info().Int("slotCount", len(items)).Msg("[AppointmentHandler] Availability succeeded")
+
 	c.JSON(http.StatusOK, items)
 }
 
